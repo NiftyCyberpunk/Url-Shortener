@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Secrets ###
+scripts/env.sh
+scripts/env.ps1
