@@ -7,6 +7,14 @@ public class UrlResponseDto {
     @NotBlank 
     private String shortUrl;
 
+    public UrlResponseDto() {
+
+    }
+
+    public UrlResponseDto(String shortUrl) {
+        this.shortUrl = shortUrl;
+    }
+
     public String getShortUrl() {
         return shortUrl;
     }

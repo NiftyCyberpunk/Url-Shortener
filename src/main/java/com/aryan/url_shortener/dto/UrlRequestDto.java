@@ -7,6 +7,14 @@ public class UrlRequestDto {
     @NotBlank 
     private String originalUrl;
 
+    public UrlRequestDto() {
+
+    }
+
+    public UrlRequestDto(String originalUrl) {
+        this.originalUrl = originalUrl;
+    }
+
     public String getOriginalUrl() {
         return originalUrl;
     }

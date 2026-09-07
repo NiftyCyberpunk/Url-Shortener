@@ -27,6 +27,17 @@ public class Url {
     @Column (nullable = false)
     private LocalDateTime createdAt;
 
+    public Url() {
+
+    }
+
+    public Url(String originalUrl, String shortCode) {
+        this.originalUrl = originalUrl;
+        this.shortCode = shortCode;
+        this.createdAt = LocalDateTime.now();
+        this.accessCount = 0;
+    }
+
     public String getOriginalUrl() {
         return originalUrl;
     }
