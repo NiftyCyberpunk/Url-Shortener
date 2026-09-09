@@ -7,7 +7,10 @@ import org.springframework.stereotype.Service;
 import com.aryan.url_shortener.dto.UrlRequestDto;
 import com.aryan.url_shortener.dto.UrlResponseDto;
 import com.aryan.url_shortener.entity.Url;
+import com.aryan.url_shortener.exception.UrlNotFoundException;
 import com.aryan.url_shortener.repository.UrlRepository;
+
+import jakarta.transaction.Transactional;
 
 @Service 
 public class UrlService {
@@ -31,6 +34,7 @@ public class UrlService {
         return shortCode.toString();
     }
 
+    @Transactional 
     public UrlResponseDto shortUrl(UrlRequestDto dto) {
 
         String shortCode;
@@ -52,5 +56,19 @@ public class UrlService {
         UrlResponseDto responseDto = new UrlResponseDto(shortUrl);
 
         return responseDto;
+    }
+
+    @Transactional 
+    public String getOriginalUrl(String shortCode){
+
+        Url url = urlRepository
+            .findByShortCode(shortCode)
+            .orElseThrow(() -> new UrlNotFoundException());
+        
+        url.setAccessCount(url.getAccessCount() + 1);
+
+        urlRepository.save(url);
+
+        return url.getOriginalUrl();
     }
 }
