@@ -13,7 +13,7 @@ public class Url {
 
     @Id 
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @Column (nullable = false)
     private String originalUrl;
@@ -22,7 +22,7 @@ public class Url {
     private String shortCode;
 
     @Column (nullable = false)
-    private Integer accessCount;
+    private Long accessCount;
 
     @Column (nullable = false)
     private LocalDateTime createdAt;
@@ -35,7 +35,7 @@ public class Url {
         this.originalUrl = originalUrl;
         this.shortCode = shortCode;
         this.createdAt = LocalDateTime.now();
-        this.accessCount = 0;
+        this.accessCount = 0L;
     }
 
     public String getOriginalUrl() {
@@ -46,7 +46,7 @@ public class Url {
         return shortCode;
     }
 
-    public Integer getAccessCount() {
+    public Long getAccessCount() {
         return accessCount;
     }
 
@@ -62,7 +62,7 @@ public class Url {
         this.shortCode = shortCode;
     }
 
-    public void setAccessCount(Integer accessCount) {
+    public void setAccessCount(Long accessCount) {
         this.accessCount = accessCount;
     }
 

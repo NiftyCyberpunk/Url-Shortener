@@ -1,6 +1,7 @@
 package com.aryan.url_shortener.service;
 
 import java.security.SecureRandom;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -16,7 +17,6 @@ import jakarta.transaction.Transactional;
 public class UrlService {
     private UrlRepository urlRepository;
     private static final String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
     private final SecureRandom secureRandom = new SecureRandom();
 
     public UrlService(UrlRepository urlRepository) {
@@ -37,6 +37,14 @@ public class UrlService {
     @Transactional 
     public UrlResponseDto shortUrl(UrlRequestDto dto) {
 
+        Optional<Url> existingUrl = urlRepository.findByOriginalUrl(dto.getOriginalUrl());
+
+        if(existingUrl.isPresent()){
+            String shortUrl = "http://nifty/" + existingUrl.get().getShortCode(); 
+
+            return new UrlResponseDto(shortUrl);
+        }
+
         String shortCode;
 
         while(true) {
@@ -45,7 +53,7 @@ public class UrlService {
             if(urlRepository.findByShortCode(shortCode).isEmpty()) {
                 break;
             }
-        }
+        }   
 
         Url url =new Url(dto.getOriginalUrl(), shortCode);
 
@@ -65,9 +73,7 @@ public class UrlService {
             .findByShortCode(shortCode)
             .orElseThrow(() -> new UrlNotFoundException());
         
-        url.setAccessCount(url.getAccessCount() + 1);
-
-        urlRepository.save(url);
+        urlRepository.increaseAccessCountByShortCode(shortCode);
 
         return url.getOriginalUrl();
     }

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
     
     @ExceptionHandler(UrlNotFoundException.class)
-    public ResponseEntity<Object> handleUrlNotFoundException(UrlNotFoundException ex){
+    public ResponseEntity<Map<String, String>> handleUrlNotFoundException(UrlNotFoundException ex){
         Map<String, String> error = Map.of("message", ex.getMessage());
 
         return ResponseEntity
