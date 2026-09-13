@@ -19,9 +19,9 @@ public interface UrlRepository extends JpaRepository<Url, Integer> {
 
     @Modifying 
     @Query ("""
-        UPDATE Url
-        SET accessCount = accessCount + 1
-        WHERE shortCode = :shortCode
+           UPDATE Url
+           SET accessCount = :count
+           WHERE shortCode = :shortCode 
     """)
-    int increaseAccessCountByShortCode(@Param("shortCode") String shortCode);
+    int updateAccessCountByShortCode(@Param("shortCode") String shortCode, @Param("count") Long count);
 }

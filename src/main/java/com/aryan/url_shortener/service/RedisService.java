@@ -1,5 +1,10 @@
 package com.aryan.url_shortener.service;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -34,5 +39,34 @@ public class RedisService {
 
     public Long increment(String key){
         return stringRedisTemplate.opsForValue().increment(countKey(key));
+    }
+
+    public Long getCount(String key){
+        String count = stringRedisTemplate.opsForValue().get(countKey(key));
+
+        return Long.parseLong(count);
+    }
+
+    public Set<String> scanCountKeys(){
+
+        HashSet<String> keySet = new HashSet<>();
+        
+        ScanOptions options = ScanOptions.scanOptions()
+            .match("url:*:count")
+            .build();
+        
+        Cursor<String> cursor = stringRedisTemplate.scan(options);
+
+        try{
+            while(cursor.hasNext()){
+                String key = cursor.next();
+                keySet.add(key);
+            }
+        }
+        finally{
+            cursor.close();
+        }
+
+        return keySet;
     }
 }
