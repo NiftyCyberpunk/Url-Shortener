@@ -61,8 +61,8 @@ public class UrlService {
 
         urlRepository.save(url);
 
-        redisService.set(shortCode, dto.getOriginalUrl());
-        redisService.set(shortCode + ":count", "0");
+        redisService.setUrl(shortCode, dto.getOriginalUrl());
+        redisService.setCount(shortCode, "0");
 
         String shortUrl = "http://nifty/" + shortCode;
 
@@ -77,7 +77,7 @@ public class UrlService {
         String cachedUrl = redisService.get(shortCode);
 
         if(cachedUrl != null){
-            redisService.increment(shortCode + ":count");
+            redisService.increment(shortCode);
             return cachedUrl;
         }
         
@@ -85,11 +85,10 @@ public class UrlService {
             .findByShortCode(shortCode)
             .orElseThrow(() -> new UrlNotFoundException());
 
-        redisService.set(shortCode, url.getOriginalUrl());
-        redisService.set(shortCode + ":count", Long.toString(url.getAccessCount()));
-
-        redisService.increment(shortCode + ":count");
-
+        redisService.setUrl(shortCode, url.getOriginalUrl());
+        redisService.setCount(shortCode, Long.toString(url.getAccessCount()));
+        redisService.increment(shortCode);
+        
         return url.getOriginalUrl();
     }
 }
