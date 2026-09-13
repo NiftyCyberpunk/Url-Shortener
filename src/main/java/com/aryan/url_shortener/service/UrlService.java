@@ -15,12 +15,14 @@ import jakarta.transaction.Transactional;
 
 @Service 
 public class UrlService {
-    private UrlRepository urlRepository;
+    private final UrlRepository urlRepository;
+    private final RedisService redisService;
     private static final String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public UrlService(UrlRepository urlRepository) {
+    public UrlService(UrlRepository urlRepository, RedisService redisService) {
         this.urlRepository = urlRepository;
+        this.redisService = redisService;
     }
 
     private String generateShortCode() {
@@ -59,6 +61,9 @@ public class UrlService {
 
         urlRepository.save(url);
 
+        redisService.set(shortCode, dto.getOriginalUrl());
+        redisService.set(shortCode + ":count", "0");
+
         String shortUrl = "http://nifty/" + shortCode;
 
         UrlResponseDto responseDto = new UrlResponseDto(shortUrl);
@@ -69,11 +74,21 @@ public class UrlService {
     @Transactional 
     public String getOriginalUrl(String shortCode){
 
+        String cachedUrl = redisService.get(shortCode);
+
+        if(cachedUrl != null){
+            redisService.increment(shortCode + ":count");
+            return cachedUrl;
+        }
+        
         Url url = urlRepository
             .findByShortCode(shortCode)
             .orElseThrow(() -> new UrlNotFoundException());
-        
-        urlRepository.increaseAccessCountByShortCode(shortCode);
+
+        redisService.set(shortCode, url.getOriginalUrl());
+        redisService.set(shortCode + ":count", Long.toString(url.getAccessCount()));
+
+        redisService.increment(shortCode + ":count");
 
         return url.getOriginalUrl();
     }
