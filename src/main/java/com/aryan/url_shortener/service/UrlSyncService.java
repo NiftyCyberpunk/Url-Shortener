@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.aryan.url_shortener.repository.UrlRepository;
 
+import io.lettuce.core.RedisException;
 import jakarta.transaction.Transactional;
 
 @Service 
@@ -24,14 +25,18 @@ public class UrlSyncService {
     @Scheduled (fixedRate = 300000)
     @Transactional 
     public void syncCount(){
-        Set<String> countKeys = redisService.scanCountKeys();
+        try {
+            Set<String> countKeys = redisService.scanCountKeys();
 
-        for(String key : countKeys){
-            int len = key.length();
-            String shortCode = key.substring(4, len - 6);
-            Long count = redisService.getCount(shortCode);
+            for(String key : countKeys){
+                int len = key.length();
+                String shortCode = key.substring(4, len - 6);
+                Long count = redisService.getCount(shortCode);
 
-            urlRepository.updateAccessCountByShortCode(shortCode, count);
+                urlRepository.updateAccessCountByShortCode(shortCode, count);
+            }
+        } catch (RedisException e) {
+             System.out.println("Redis unavailable. Sync failed.");
         }
     }
 }
