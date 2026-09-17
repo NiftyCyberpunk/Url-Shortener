@@ -18,4 +18,13 @@ public class GlobalExceptionHandler {
             .status(HttpStatus.NOT_FOUND)
             .body(error);
     }
+
+    @ExceptionHandler(UrlExpiredException.class)
+    public ResponseEntity<Map<String, String>> handleUrlExpiredException(UrlExpiredException ex){
+        Map<String, String> error = Map.of("message", ex.getMessage());
+
+        return ResponseEntity
+            .status(HttpStatus.GONE)
+            .body(error);
+    }
 }

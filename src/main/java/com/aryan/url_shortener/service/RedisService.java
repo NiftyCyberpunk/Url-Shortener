@@ -1,5 +1,6 @@
 package com.aryan.url_shortener.service;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -25,8 +26,8 @@ public class RedisService {
         this.stringRedisTemplate = stringRedisTemplate;
     }
 
-    public void setUrl(String key, String value){
-        stringRedisTemplate.opsForValue().set(urlKey(key), value);
+    public void setUrl(String key, String value, Duration ttl){
+        stringRedisTemplate.opsForValue().set(urlKey(key), value, ttl);
     }
 
     public void setCount(String key, String value){
@@ -68,5 +69,9 @@ public class RedisService {
         }
 
         return keySet;
+    }
+
+    public void delete(String key){
+        stringRedisTemplate.delete(countKey(key));
     }
 }

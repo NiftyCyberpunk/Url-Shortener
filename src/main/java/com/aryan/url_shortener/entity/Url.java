@@ -27,15 +27,28 @@ public class Url {
     @Column (nullable = false)
     private LocalDateTime createdAt;
 
+    @Column (nullable = false)
+    private LocalDateTime expiresAt;
+
     public Url() {
 
     }
 
     public Url(String originalUrl, String shortCode) {
+        LocalDateTime now = LocalDateTime.now();
+        this.originalUrl = originalUrl;
+        this.shortCode = shortCode;
+        this.createdAt = now;
+        this.accessCount = 0L;
+        this.expiresAt = now.plusDays(7);
+    }
+
+    public Url(String originalUrl, String shortCode, LocalDateTime expiresAt) {
         this.originalUrl = originalUrl;
         this.shortCode = shortCode;
         this.createdAt = LocalDateTime.now();
         this.accessCount = 0L;
+        this.expiresAt = expiresAt;
     }
 
     public String getOriginalUrl() {
@@ -54,6 +67,10 @@ public class Url {
         return createdAt;
     }
 
+    public LocalDateTime getExpiresAt() {
+        return expiresAt;
+    }
+
     public void setOriginalUrl(String originalUrl) {
         this.originalUrl = originalUrl;
     }
@@ -68,5 +85,9 @@ public class Url {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public void setExpiresAt(LocalDateTime expiresAt) {
+        this.expiresAt = expiresAt;
     }
 }

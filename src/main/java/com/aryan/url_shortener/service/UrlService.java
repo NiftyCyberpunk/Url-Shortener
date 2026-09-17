@@ -2,6 +2,8 @@ package com.aryan.url_shortener.service;
 
 import java.security.SecureRandom;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import com.aryan.url_shortener.dto.UrlRequestDto;
 import com.aryan.url_shortener.dto.UrlResponseDto;
 import com.aryan.url_shortener.entity.Url;
+import com.aryan.url_shortener.exception.UrlExpiredException;
 import com.aryan.url_shortener.exception.UrlNotFoundException;
 import com.aryan.url_shortener.repository.UrlRepository;
 
@@ -55,6 +58,10 @@ public class UrlService {
             .findByShortCode(shortCode)
             .orElseThrow(() -> new UrlNotFoundException());
         
+        if (!LocalDateTime.now().isBefore(url.getExpiresAt())) {
+            throw new UrlExpiredException();
+        }
+        
         urlRepository.increaseAccessCountByShortCode(shortCode);
         
         return url.getOriginalUrl();
@@ -64,6 +71,10 @@ public class UrlService {
         Url url = urlRepository
             .findByShortCode(shortCode)
             .orElseThrow(() -> new UrlNotFoundException());
+            
+        if(!LocalDateTime.now().isBefore(url.getExpiresAt())){
+            throw new UrlExpiredException();
+        }
 
         return url;
     }
@@ -74,23 +85,32 @@ public class UrlService {
    
     public UrlResponseDto shortUrl(UrlRequestDto dto) {
 
-        Optional<Url> existingUrl = urlRepository.findByOriginalUrl(dto.getOriginalUrl());
+        Optional<Url> existingUrl = urlRepository.findByOriginalUrlAndExpiresAtAfter(dto.getOriginalUrl(), LocalDateTime.now());
 
         if(existingUrl.isPresent()){
             String shortUrl = "http://nifty/" + existingUrl.get().getShortCode(); 
 
-            redisService.setUrl(existingUrl.get().getShortCode(), existingUrl.get().getOriginalUrl());
+            LocalDateTime now = LocalDateTime.now();
+            Duration ttl = Duration.between(now, existingUrl.get().getExpiresAt());
+
+            redisService.setUrl(existingUrl.get().getShortCode(), existingUrl.get().getOriginalUrl(), ttl);
             redisService.setCount(existingUrl.get().getShortCode(), Long.toString(existingUrl.get().getAccessCount()));
 
             return new UrlResponseDto(shortUrl);
         }
 
+        Url url;
         String shortCode;
-
+        LocalDateTime expiresAt = dto.getExpiresAt();
         while(true) {
             shortCode = generateShortCode();
             try {
-                Url url =new Url(dto.getOriginalUrl(), shortCode);
+                if(expiresAt == null){
+                    url =new Url(dto.getOriginalUrl(), shortCode);
+                }
+                else{
+                    url =new Url(dto.getOriginalUrl(), shortCode, expiresAt);
+                }
                 urlRepository.save(url);
                 break;
             } catch (DataIntegrityViolationException e) {
@@ -100,7 +120,9 @@ public class UrlService {
             }
         }   
 
-        redisService.setUrl(shortCode, dto.getOriginalUrl());
+        Duration ttl = Duration.between(LocalDateTime.now(), url.getExpiresAt());
+
+        redisService.setUrl(shortCode, dto.getOriginalUrl(), ttl);
         redisService.setCount(shortCode, "0");
 
         String shortUrl = "http://nifty/" + shortCode;
@@ -125,9 +147,9 @@ public class UrlService {
         }
         //separating the database and redis operations so these do not clash in the catch
         Url url = getUrlFromDatabase(shortCode);
-
+        Duration ttl = Duration.between(LocalDateTime.now(), url.getExpiresAt());
         try {
-            redisService.setUrl(shortCode, url.getOriginalUrl());
+            redisService.setUrl(shortCode, url.getOriginalUrl(), ttl);
             redisService.setCount(shortCode, Long.toString(url.getAccessCount()));
             redisService.increment(shortCode);
         } catch (QueryTimeoutException e) {
