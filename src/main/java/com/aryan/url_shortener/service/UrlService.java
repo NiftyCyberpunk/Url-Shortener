@@ -14,13 +14,11 @@ import com.aryan.url_shortener.entity.Url;
 import com.aryan.url_shortener.exception.UrlNotFoundException;
 import com.aryan.url_shortener.repository.UrlRepository;
 
-import jakarta.transaction.Transactional;
-
 @Service 
 public class UrlService {
     private final UrlRepository urlRepository;
     private final RedisService redisService;
-    private static final String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private final SecureRandom secureRandom = new SecureRandom();
 
     public UrlService(UrlRepository urlRepository, RedisService redisService) {
@@ -32,11 +30,46 @@ public class UrlService {
         StringBuilder shortCode = new StringBuilder(6);
 
         for(int i = 0; i < 6; i++){
-            int index = secureRandom.nextInt(characters.length());
-            shortCode.append(characters.charAt(index));
+            int index = secureRandom.nextInt(CHARACTERS.length());
+            shortCode.append(CHARACTERS.charAt(index));
         }
 
         return shortCode.toString();
+    }
+
+    private boolean isDuplicateKeyViolation(DataIntegrityViolationException exception){
+        Throwable cause = exception;
+        while(cause != null){
+            if(cause instanceof SQLException sqlException){
+                if(sqlException.getErrorCode() == 1062){
+                    return true;
+                }
+            }
+            cause = cause.getCause();
+        }
+        return false;
+    }
+
+    private String getUrlFromDatabaseAndIncrement(String shortCode){
+        Url url = urlRepository
+            .findByShortCode(shortCode)
+            .orElseThrow(() -> new UrlNotFoundException());
+        
+        urlRepository.increaseAccessCountByShortCode(shortCode);
+        
+        return url.getOriginalUrl();
+    }
+
+    private Url getUrlFromDatabase(String shortCode){
+        Url url = urlRepository
+            .findByShortCode(shortCode)
+            .orElseThrow(() -> new UrlNotFoundException());
+
+        return url;
+    }
+
+    private void increaseAccessCountInDatabase(String shortCode){
+        urlRepository.increaseAccessCountByShortCode(shortCode);
     }
    
     public UrlResponseDto shortUrl(UrlRequestDto dto) {
@@ -56,24 +89,12 @@ public class UrlService {
 
         while(true) {
             shortCode = generateShortCode();
-            boolean duplicate = false;
             try {
                 Url url =new Url(dto.getOriginalUrl(), shortCode);
                 urlRepository.save(url);
                 break;
             } catch (DataIntegrityViolationException e) {
-                Throwable cause = e;
-
-                while(cause != null){
-                    if(cause instanceof SQLException sqlException){
-                        if(sqlException.getErrorCode() == 1062){
-                            duplicate = true;
-                            break;
-                        }
-                    }
-                    cause = cause.getCause();
-                }
-                if(!duplicate){
+                if(!isDuplicateKeyViolation(e)){
                     throw e;
                 }
             }
@@ -89,7 +110,6 @@ public class UrlService {
         return responseDto;
     }
 
-    @Transactional 
     public String getOriginalUrl(String shortCode){
 
         try {
@@ -100,23 +120,19 @@ public class UrlService {
                 return cachedUrl;
             }
             
-            Url url = urlRepository
-                .findByShortCode(shortCode)
-                .orElseThrow(() -> new UrlNotFoundException());
+        } catch (QueryTimeoutException e){
+            return getUrlFromDatabaseAndIncrement(shortCode);
+        }
+        //separating the database and redis operations so these do not clash in the catch
+        Url url = getUrlFromDatabase(shortCode);
 
+        try {
             redisService.setUrl(shortCode, url.getOriginalUrl());
             redisService.setCount(shortCode, Long.toString(url.getAccessCount()));
             redisService.increment(shortCode);
-            
-            return url.getOriginalUrl();
-        } catch (QueryTimeoutException e){
-            Url url = urlRepository
-                .findByShortCode(shortCode)
-                .orElseThrow(() -> new UrlNotFoundException());
-            
-            urlRepository.increaseAccessCountByShortCode(shortCode);
-            
-            return url.getOriginalUrl();
+        } catch (QueryTimeoutException e) {
+            increaseAccessCountInDatabase(shortCode);
         }
+            return url.getOriginalUrl();
     }
 }
