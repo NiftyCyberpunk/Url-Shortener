@@ -93,8 +93,12 @@ public class UrlService {
             LocalDateTime now = LocalDateTime.now();
             Duration ttl = Duration.between(now, existingUrl.get().getExpiresAt());
 
-            redisService.setUrl(existingUrl.get().getShortCode(), existingUrl.get().getOriginalUrl(), ttl);
-            redisService.setCount(existingUrl.get().getShortCode(), Long.toString(existingUrl.get().getAccessCount()));
+            try {
+                redisService.setUrl(existingUrl.get().getShortCode(), existingUrl.get().getOriginalUrl(), ttl);
+                redisService.setCount(existingUrl.get().getShortCode(), Long.toString(existingUrl.get().getAccessCount()));
+            } catch (QueryTimeoutException e) {
+                
+            }
 
             return new UrlResponseDto(shortUrl);
         }
@@ -122,8 +126,12 @@ public class UrlService {
 
         Duration ttl = Duration.between(LocalDateTime.now(), url.getExpiresAt());
 
-        redisService.setUrl(shortCode, dto.getOriginalUrl(), ttl);
-        redisService.setCount(shortCode, "0");
+        try {
+            redisService.setUrl(shortCode, dto.getOriginalUrl(), ttl);
+            redisService.setCount(shortCode, "0");
+        } catch (QueryTimeoutException e) {
+
+        }
 
         String shortUrl = "http://nifty/" + shortCode;
 
