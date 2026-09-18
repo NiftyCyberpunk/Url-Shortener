@@ -27,4 +27,13 @@ public class GlobalExceptionHandler {
             .status(HttpStatus.GONE)
             .body(error);
     }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<Map<String, String>> handleRateLimitExceededException(RateLimitExceededException ex){
+        Map<String, String> error = Map.of("message", ex.getMessage());
+
+        return ResponseEntity
+            .status(HttpStatus.TOO_MANY_REQUESTS)
+            .body(error);
+    }
 }

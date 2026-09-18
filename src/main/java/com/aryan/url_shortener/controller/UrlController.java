@@ -13,22 +13,38 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.aryan.url_shortener.dto.UrlRequestDto;
 import com.aryan.url_shortener.dto.UrlResponseDto;
+import com.aryan.url_shortener.exception.RateLimitExceededException;
 import com.aryan.url_shortener.service.UrlService;
+import com.aryan.url_shortener.service.RateLimitService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController  
 public class UrlController {
     
     private final UrlService urlService;
+    private final RateLimitService rateLimitService;
 
-    public UrlController(UrlService urlService) {
+    public UrlController(UrlService urlService, RateLimitService rateLimitService) {
         this.urlService = urlService;
+        this.rateLimitService = rateLimitService;
     }
 
     @PostMapping ("/api/url-shortener")
-    public UrlResponseDto shortUrl(@Valid @RequestBody UrlRequestDto dto) {
-        return urlService.shortUrl(dto);
+    public ResponseEntity<UrlResponseDto> shortUrl(@Valid @RequestBody UrlRequestDto dto, HttpServletRequest request) {
+
+        String ip = request.getRemoteAddr();
+
+        if(!rateLimitService.isAllowed(ip)){
+           throw new RateLimitExceededException();
+        }
+
+        UrlResponseDto responseDto = urlService.shortUrl(dto);
+
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(responseDto);
     }
 
     @GetMapping ("/nifty/{shortCode}")

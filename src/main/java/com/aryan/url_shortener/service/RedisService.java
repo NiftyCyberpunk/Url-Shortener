@@ -22,6 +22,10 @@ public class RedisService {
         return "url:" + key + ":count";
     }
 
+    private String rateKey(String ip){
+        return "rate:shorten:" + ip;
+    }
+
     public RedisService(StringRedisTemplate stringRedisTemplate){
         this.stringRedisTemplate = stringRedisTemplate;
     }
@@ -40,6 +44,10 @@ public class RedisService {
 
     public Long increment(String key){
         return stringRedisTemplate.opsForValue().increment(countKey(key));
+    }
+
+    public Long incrementRate(String ip){
+        return stringRedisTemplate.opsForValue().increment(rateKey(ip));
     }
 
     public Long getCount(String key){
@@ -73,5 +81,9 @@ public class RedisService {
 
     public void delete(String key){
         stringRedisTemplate.delete(countKey(key));
+    }
+
+    public void expireRate(String ip, Duration duration){
+        stringRedisTemplate.expire(rateKey(ip), duration);
     }
 }
