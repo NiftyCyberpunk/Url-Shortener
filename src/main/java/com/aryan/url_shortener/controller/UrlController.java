@@ -15,6 +15,11 @@ import com.aryan.url_shortener.dto.UrlRequestDto;
 import com.aryan.url_shortener.dto.UrlResponseDto;
 import com.aryan.url_shortener.exception.RateLimitExceededException;
 import com.aryan.url_shortener.service.UrlService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import com.aryan.url_shortener.service.RateLimitService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +36,16 @@ public class UrlController {
         this.rateLimitService = rateLimitService;
     }
 
+    @Operation(
+        summary = "Create a short URL",
+        description = "Creates a shortened URL with an optional expiration time."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Short URL created"),
+        @ApiResponse(responseCode = "400", description = "Invalid request"),
+        @ApiResponse(responseCode = "429", description = "Rate limit exceeded"),
+        @ApiResponse(responseCode = "500", description = "Unexpected server error")
+    })
     @PostMapping("/api/url-shortener")
     public ResponseEntity<UrlResponseDto> shortUrl(@Valid @RequestBody UrlRequestDto dto, HttpServletRequest request) {
 
@@ -49,6 +64,16 @@ public class UrlController {
                 .body(responseDto);
     }
 
+    @Operation (
+        summary = "Redirects to the original URL",
+        description = "Redirects the client to the original URL associated with the short code."
+    )
+    @ApiResponses ({
+        @ApiResponse(responseCode = "302", description = "Redirect successful"),
+        @ApiResponse(responseCode = "404", description = "Short URL not found"),
+        @ApiResponse(responseCode = "410", description = "Short URL has expired"),
+        @ApiResponse(responseCode = "500", description = "Unexpected error")
+    })
     @GetMapping("/nifty/{shortCode}")
 
     public ResponseEntity<Void> getOriginalUrl(@PathVariable String shortCode) {
