@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -13,25 +15,25 @@ import com.aryan.url_shortener.repository.UrlRepository;
 import io.lettuce.core.RedisException;
 import jakarta.transaction.Transactional;
 
-@Service 
+@Service
 public class DatabaseMaintenanceService {
-    
+
     private final UrlRepository urlRepository;
     private final RedisService redisService;
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseMaintenanceService.class);
 
-
-    public DatabaseMaintenanceService(UrlRepository urlRepository, RedisService redisService){
+    public DatabaseMaintenanceService(UrlRepository urlRepository, RedisService redisService) {
         this.urlRepository = urlRepository;
         this.redisService = redisService;
-    } 
+    }
 
-    @Scheduled (fixedRate = 300000)
-    @Transactional 
-    public void syncCount(){
+    @Scheduled(fixedRate = 300000)
+    @Transactional
+    public void syncCount() {
         try {
             Set<String> countKeys = redisService.scanCountKeys();
 
-            for(String key : countKeys){
+            for (String key : countKeys) {
                 int len = key.length();
                 String shortCode = key.substring(4, len - 6);
                 Long count = redisService.getCount(shortCode);
@@ -39,21 +41,21 @@ public class DatabaseMaintenanceService {
                 urlRepository.updateAccessCountByShortCode(shortCode, count);
             }
         } catch (RedisException e) {
-             System.out.println("Redis unavailable. Sync failed.");
+            logger.warn("Redis unavailable. Skipping count synchronization.");
         }
     }
 
-    @Scheduled (fixedRate = 86400000)
-    @Transactional 
-    public void expiredUrlCleanUp(){
+    @Scheduled(fixedRate = 86400000)
+    @Transactional
+    public void expiredUrlCleanUp() {
         try {
             List<Url> expiredUrl = urlRepository.findByExpiresAtLessThanEqual(LocalDateTime.now());
-            
-            for(Url url:expiredUrl){
+
+            for (Url url : expiredUrl) {
 
                 Long count = redisService.getCount(url.getShortCode());
-                
-                if(count != null){
+
+                if (count != null) {
                     urlRepository.updateAccessCountByShortCode(url.getShortCode(), count);
                 }
 
@@ -61,7 +63,7 @@ public class DatabaseMaintenanceService {
                 urlRepository.delete(url);
             }
         } catch (RedisException e) {
-            System.out.println("Redis Unavaliable... Skipping cleanup.");
+            logger.warn("Redis Unavaliable... Skipping expired URL cleanup.");
         }
     }
 }

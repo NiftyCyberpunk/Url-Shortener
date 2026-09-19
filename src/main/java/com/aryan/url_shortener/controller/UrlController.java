@@ -20,9 +20,9 @@ import com.aryan.url_shortener.service.RateLimitService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
-@RestController  
+@RestController
 public class UrlController {
-    
+
     private final UrlService urlService;
     private final RateLimitService rateLimitService;
 
@@ -31,25 +31,27 @@ public class UrlController {
         this.rateLimitService = rateLimitService;
     }
 
-    @PostMapping ("/api/url-shortener")
+    @PostMapping("/api/url-shortener")
     public ResponseEntity<UrlResponseDto> shortUrl(@Valid @RequestBody UrlRequestDto dto, HttpServletRequest request) {
 
         String ip = request.getRemoteAddr();
 
-        if(!rateLimitService.isAllowed(ip)){
-           throw new RateLimitExceededException();
+        if (!rateLimitService.isAllowed(ip)) {
+            throw new RateLimitExceededException();
         }
 
         UrlResponseDto responseDto = urlService.shortUrl(dto);
 
+        URI location = URI.create(responseDto.getShortUrl());
+
         return ResponseEntity
-            .status(HttpStatus.OK)
-            .body(responseDto);
+                .created(location)
+                .body(responseDto);
     }
 
-    @GetMapping ("/nifty/{shortCode}")
+    @GetMapping("/nifty/{shortCode}")
 
-    public ResponseEntity<Void> getOriginalUrl(@PathVariable String shortCode){
+    public ResponseEntity<Void> getOriginalUrl(@PathVariable String shortCode) {
         String originalUrl = urlService.getOriginalUrl(shortCode);
 
         HttpHeaders headers = new HttpHeaders();

@@ -8,26 +8,26 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
-@Entity 
+@Entity
 public class Url {
 
-    @Id 
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column (nullable = false)
+    @Column(nullable = false)
     private String originalUrl;
-    
-    @Column (unique = true, nullable = false)
+
+    @Column(unique = true, nullable = false)
     private String shortCode;
 
-    @Column (nullable = false)
+    @Column(nullable = false)
     private Long accessCount;
 
-    @Column (nullable = false)
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @Column (nullable = false)
+    @Column(nullable = false)
     private LocalDateTime expiresAt;
 
     public Url() {

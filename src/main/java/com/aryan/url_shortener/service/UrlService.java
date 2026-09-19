@@ -6,8 +6,10 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.QueryTimeoutException;
 import org.springframework.stereotype.Service;
 
 import com.aryan.url_shortener.dto.UrlRequestDto;
@@ -17,12 +19,13 @@ import com.aryan.url_shortener.exception.UrlExpiredException;
 import com.aryan.url_shortener.exception.UrlNotFoundException;
 import com.aryan.url_shortener.repository.UrlRepository;
 
-@Service 
+@Service
 public class UrlService {
     private final UrlRepository urlRepository;
     private final RedisService redisService;
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private final SecureRandom secureRandom = new SecureRandom();
+    private static final Logger logger = LoggerFactory.getLogger(UrlService.class);
 
     public UrlService(UrlRepository urlRepository, RedisService redisService) {
         this.urlRepository = urlRepository;
@@ -32,7 +35,7 @@ public class UrlService {
     private String generateShortCode() {
         StringBuilder shortCode = new StringBuilder(6);
 
-        for(int i = 0; i < 6; i++){
+        for (int i = 0; i < 6; i++) {
             int index = secureRandom.nextInt(CHARACTERS.length());
             shortCode.append(CHARACTERS.charAt(index));
         }
@@ -40,11 +43,11 @@ public class UrlService {
         return shortCode.toString();
     }
 
-    private boolean isDuplicateKeyViolation(DataIntegrityViolationException exception){
+    private boolean isDuplicateKeyViolation(DataIntegrityViolationException exception) {
         Throwable cause = exception;
-        while(cause != null){
-            if(cause instanceof SQLException sqlException){
-                if(sqlException.getErrorCode() == 1062){
+        while (cause != null) {
+            if (cause instanceof SQLException sqlException) {
+                if (sqlException.getErrorCode() == 1062) {
                     return true;
                 }
             }
@@ -53,51 +56,55 @@ public class UrlService {
         return false;
     }
 
-    private String getUrlFromDatabaseAndIncrement(String shortCode){
+    private String getUrlFromDatabaseAndIncrement(String shortCode) {
         Url url = urlRepository
-            .findByShortCode(shortCode)
-            .orElseThrow(() -> new UrlNotFoundException());
-        
-        if (!LocalDateTime.now().isBefore(url.getExpiresAt())) {
-            throw new UrlExpiredException();
-        }
-        
+                .findByShortCode(shortCode)
+                .orElseThrow(() -> new UrlNotFoundException());
+
+        checkExpiration(url);
+
         urlRepository.increaseAccessCountByShortCode(shortCode);
-        
+
         return url.getOriginalUrl();
     }
 
-    private Url getUrlFromDatabase(String shortCode){
+    private Url getUrlFromDatabase(String shortCode) {
         Url url = urlRepository
-            .findByShortCode(shortCode)
-            .orElseThrow(() -> new UrlNotFoundException());
-            
-        if(!LocalDateTime.now().isBefore(url.getExpiresAt())){
-            throw new UrlExpiredException();
-        }
+                .findByShortCode(shortCode)
+                .orElseThrow(() -> new UrlNotFoundException());
+
+        checkExpiration(url);
 
         return url;
     }
 
-    private void increaseAccessCountInDatabase(String shortCode){
+    private void increaseAccessCountInDatabase(String shortCode) {
         urlRepository.increaseAccessCountByShortCode(shortCode);
     }
-   
+
+    private void checkExpiration(Url url) {
+        if (!LocalDateTime.now().isBefore(url.getExpiresAt())) {
+            throw new UrlExpiredException();
+        }
+    }
+
     public UrlResponseDto shortUrl(UrlRequestDto dto) {
 
-        Optional<Url> existingUrl = urlRepository.findByOriginalUrlAndExpiresAtAfter(dto.getOriginalUrl(), LocalDateTime.now());
+        Optional<Url> existingUrl = urlRepository.findByOriginalUrlAndExpiresAtAfter(dto.getOriginalUrl(),
+                LocalDateTime.now());
 
-        if(existingUrl.isPresent()){
-            String shortUrl = "http://nifty/" + existingUrl.get().getShortCode(); 
+        if (existingUrl.isPresent()) {
+            String shortUrl = "http://nifty/" + existingUrl.get().getShortCode();
 
             LocalDateTime now = LocalDateTime.now();
             Duration ttl = Duration.between(now, existingUrl.get().getExpiresAt());
 
             try {
                 redisService.setUrl(existingUrl.get().getShortCode(), existingUrl.get().getOriginalUrl(), ttl);
-                redisService.setCount(existingUrl.get().getShortCode(), Long.toString(existingUrl.get().getAccessCount()));
-            } catch (QueryTimeoutException e) {
-                
+                redisService.setCount(existingUrl.get().getShortCode(),
+                        Long.toString(existingUrl.get().getAccessCount()));
+            } catch (DataAccessException e) {
+                logger.warn("Redis unavaliable. Skipping cache building.");
             }
 
             return new UrlResponseDto(shortUrl);
@@ -106,31 +113,30 @@ public class UrlService {
         Url url;
         String shortCode;
         LocalDateTime expiresAt = dto.getExpiresAt();
-        while(true) {
+        while (true) {
             shortCode = generateShortCode();
             try {
-                if(expiresAt == null){
-                    url =new Url(dto.getOriginalUrl(), shortCode);
-                }
-                else{
-                    url =new Url(dto.getOriginalUrl(), shortCode, expiresAt);
+                if (expiresAt == null) {
+                    url = new Url(dto.getOriginalUrl(), shortCode);
+                } else {
+                    url = new Url(dto.getOriginalUrl(), shortCode, expiresAt);
                 }
                 urlRepository.save(url);
                 break;
             } catch (DataIntegrityViolationException e) {
-                if(!isDuplicateKeyViolation(e)){
+                if (!isDuplicateKeyViolation(e)) {
                     throw e;
                 }
             }
-        }   
+        }
 
         Duration ttl = Duration.between(LocalDateTime.now(), url.getExpiresAt());
 
         try {
             redisService.setUrl(shortCode, dto.getOriginalUrl(), ttl);
             redisService.setCount(shortCode, "0");
-        } catch (QueryTimeoutException e) {
-
+        } catch (DataAccessException e) {
+            logger.warn("Redis unavaliable. Skipping cache building.");
         }
 
         String shortUrl = "http://nifty/" + shortCode;
@@ -140,29 +146,30 @@ public class UrlService {
         return responseDto;
     }
 
-    public String getOriginalUrl(String shortCode){
+    public String getOriginalUrl(String shortCode) {
 
         try {
             String cachedUrl = redisService.get(shortCode);
 
-            if(cachedUrl != null){
+            if (cachedUrl != null) {
                 redisService.increment(shortCode);
                 return cachedUrl;
             }
-            
-        } catch (QueryTimeoutException e){
+
+        } catch (DataAccessException e) {
             return getUrlFromDatabaseAndIncrement(shortCode);
         }
-        //separating the database and redis operations so these do not clash in the catch
+        // separating the database and redis operations so these do not clash in the
+        // catch
         Url url = getUrlFromDatabase(shortCode);
         Duration ttl = Duration.between(LocalDateTime.now(), url.getExpiresAt());
         try {
             redisService.setUrl(shortCode, url.getOriginalUrl(), ttl);
             redisService.setCount(shortCode, Long.toString(url.getAccessCount()));
             redisService.increment(shortCode);
-        } catch (QueryTimeoutException e) {
+        } catch (DataAccessException e) {
             increaseAccessCountInDatabase(shortCode);
         }
-            return url.getOriginalUrl();
+        return url.getOriginalUrl();
     }
 }

@@ -9,81 +9,80 @@ import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-@Service 
+@Service
 public class RedisService {
-    
+
     private final StringRedisTemplate stringRedisTemplate;
 
-    private String urlKey(String key){
+    private String urlKey(String key) {
         return "url:" + key;
     }
 
-    private String countKey(String key){
+    private String countKey(String key) {
         return "url:" + key + ":count";
     }
 
-    private String rateKey(String ip){
+    private String rateKey(String ip) {
         return "rate:shorten:" + ip;
     }
 
-    public RedisService(StringRedisTemplate stringRedisTemplate){
+    public RedisService(StringRedisTemplate stringRedisTemplate) {
         this.stringRedisTemplate = stringRedisTemplate;
     }
 
-    public void setUrl(String key, String value, Duration ttl){
+    public void setUrl(String key, String value, Duration ttl) {
         stringRedisTemplate.opsForValue().set(urlKey(key), value, ttl);
     }
 
-    public void setCount(String key, String value){
+    public void setCount(String key, String value) {
         stringRedisTemplate.opsForValue().set(countKey(key), value);
     }
 
-    public String get(String key){
+    public String get(String key) {
         return stringRedisTemplate.opsForValue().get(urlKey(key));
     }
 
-    public Long increment(String key){
+    public Long increment(String key) {
         return stringRedisTemplate.opsForValue().increment(countKey(key));
     }
 
-    public Long incrementRate(String ip){
+    public Long incrementRate(String ip) {
         return stringRedisTemplate.opsForValue().increment(rateKey(ip));
     }
 
-    public Long getCount(String key){
+    public Long getCount(String key) {
         String count = stringRedisTemplate.opsForValue().get(countKey(key));
 
         return Long.parseLong(count);
     }
 
-    public Set<String> scanCountKeys(){
+    public Set<String> scanCountKeys() {
 
         HashSet<String> keySet = new HashSet<>();
-        
+
         ScanOptions options = ScanOptions.scanOptions()
-            .match("url:*:count")
-            .build();
-        
+                .match("url:*:count")
+                .build();
+
         Cursor<String> cursor = stringRedisTemplate.scan(options);
 
-        try{
-            while(cursor.hasNext()){
+        try {
+            while (cursor.hasNext()) {
                 String key = cursor.next();
                 keySet.add(key);
             }
-        }
-        finally{
+        } finally {
             cursor.close();
         }
 
         return keySet;
     }
 
-    public void delete(String key){
+    public void delete(String key) {
         stringRedisTemplate.delete(countKey(key));
     }
 
-    public void expireRate(String ip, Duration duration){
+    public void expireRate(String ip, Duration duration) {
         stringRedisTemplate.expire(rateKey(ip), duration);
     }
 }
