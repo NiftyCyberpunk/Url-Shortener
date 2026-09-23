@@ -33,7 +33,8 @@ services:
       start_period: 30s
 
   app:
-    image: url-shortener:2.0
+    image: url-shortener:2.1
+    restart: unless-stopped
     ports:
     - "8080:8080"
     environment:
@@ -47,6 +48,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
 volumes:
   redis-data:

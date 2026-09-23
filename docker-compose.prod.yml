@@ -1,0 +1,6 @@
+services:
+  mysql:
+    ports: !reset []
+  
+  redis:
+    ports: !reset []
