@@ -1,5 +1,4 @@
 FROM eclipse-temurin:21-jdk AS build
-
 WORKDIR /app
 
 COPY .mvn .mvn
@@ -13,11 +12,13 @@ RUN ./mvnw clean package -DskipTests
 
 
 FROM eclipse-temurin:21-jre
-
 WORKDIR /app
+
+RUN useradd -r -u 1001 appuser
 
 COPY --from=build /app/target/url-shortener-0.0.1-SNAPSHOT.jar app.jar
 
-EXPOSE 8080
+USER appuser
 
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
