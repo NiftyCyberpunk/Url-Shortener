@@ -36,3 +36,4 @@ build/
 scripts/env.sh
 scripts/env.ps1
 .env
+nginx/certs/
