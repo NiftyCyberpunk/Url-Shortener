@@ -49,7 +49,7 @@ public class UrlController {
     @PostMapping("/api/url-shortener")
     public ResponseEntity<UrlResponseDto> shortUrl(@Valid @RequestBody UrlRequestDto dto, HttpServletRequest request) {
 
-        String ip = request.getRemoteAddr();
+        String ip = request.getHeader("X-Real-IP");
 
         if (!rateLimitService.isAllowed(ip)) {
             throw new RateLimitExceededException();

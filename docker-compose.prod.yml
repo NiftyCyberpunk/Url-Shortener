@@ -6,4 +6,5 @@ services:
     ports: !reset []
 
   app:
+    ports: !reset []
     stop_grace_period: 30s
