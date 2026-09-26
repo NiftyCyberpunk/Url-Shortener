@@ -18,6 +18,9 @@ import com.aryan.url_shortener.entity.Url;
 import com.aryan.url_shortener.exception.UrlExpiredException;
 import com.aryan.url_shortener.exception.UrlNotFoundException;
 import com.aryan.url_shortener.repository.UrlRepository;
+import com.aryan.url_shortener.utils.HashUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @Service
 public class UrlService {
@@ -88,13 +91,15 @@ public class UrlService {
         }
     }
 
-    public UrlResponseDto shortUrl(UrlRequestDto dto) {
+    public UrlResponseDto shortUrl(UrlRequestDto dto, HttpServletRequest request) {
 
-        Optional<Url> existingUrl = urlRepository.findByOriginalUrlAndExpiresAtAfter(dto.getOriginalUrl(),
+        String urlHash = HashUtil.sha256(dto.getOriginalUrl());
+
+        Optional<Url> existingUrl = urlRepository.findByUrlHashAndExpiresAtAfter(urlHash,
                 LocalDateTime.now());
 
-        if (existingUrl.isPresent()) {
-            String shortUrl = "http://nifty/" + existingUrl.get().getShortCode();
+        if (existingUrl.isPresent() && existingUrl.get().getOriginalUrl().equals(dto.getOriginalUrl())) {
+            String shortUrl = request.getScheme() + "://" + request.getServerName() + "/" + existingUrl.get().getShortCode();
 
             LocalDateTime now = LocalDateTime.now();
             Duration ttl = Duration.between(now, existingUrl.get().getExpiresAt());
@@ -117,9 +122,9 @@ public class UrlService {
             shortCode = generateShortCode();
             try {
                 if (expiresAt == null) {
-                    url = new Url(dto.getOriginalUrl(), shortCode);
+                    url = new Url(dto.getOriginalUrl(), shortCode, urlHash);
                 } else {
-                    url = new Url(dto.getOriginalUrl(), shortCode, expiresAt);
+                    url = new Url(dto.getOriginalUrl(), shortCode, expiresAt, urlHash);
                 }
                 urlRepository.save(url);
                 break;
@@ -139,7 +144,7 @@ public class UrlService {
             logger.warn("Redis unavaliable. Skipping cache building.");
         }
 
-        String shortUrl = "http://nifty/" + shortCode;
+        String shortUrl = request.getScheme() + "://" + request.getServerName() + "/" + shortCode;
 
         UrlResponseDto responseDto = new UrlResponseDto(shortUrl);
 

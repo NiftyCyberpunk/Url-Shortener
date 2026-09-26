@@ -2,14 +2,20 @@ package com.aryan.url_shortener.exception;
 
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.aryan.url_shortener.service.UrlService;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+        private static final Logger logger = LoggerFactory.getLogger(UrlService.class);
 
     @ExceptionHandler(UrlNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleUrlNotFoundException(UrlNotFoundException ex) {
@@ -53,6 +59,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler (Exception.class)
     public ResponseEntity<Map<String, String>> handleUnexpectedException(Exception ex) {
+        logger.error("Unexpected error occurred", ex);
         Map<String, String> error = Map.of("message", "An unexpected error occured.");
 
         return ResponseEntity

@@ -55,7 +55,7 @@ public class UrlController {
             throw new RateLimitExceededException();
         }
 
-        UrlResponseDto responseDto = urlService.shortUrl(dto);
+        UrlResponseDto responseDto = urlService.shortUrl(dto, request);
 
         URI location = URI.create(responseDto.getShortUrl());
 

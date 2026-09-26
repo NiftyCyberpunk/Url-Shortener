@@ -18,7 +18,7 @@ public interface UrlRepository extends JpaRepository<Url, Integer> {
 
     Optional<Url> findByShortCode(String shortCode);
 
-    Optional<Url> findByOriginalUrlAndExpiresAtAfter(String originalUrl, LocalDateTime now);
+    Optional<Url> findByUrlHashAndExpiresAtAfter(String originalUrl, LocalDateTime now);
 
     @Transactional
     @Modifying
