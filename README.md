@@ -32,8 +32,6 @@ The application generates short URLs for long URLs, redirects users to the origi
 
 ## Architecture
 
-## Architecture
-
 The application follows a layered architecture with MySQL as the persistent data store and Redis as the caching and high-speed access-counting layer.
 
 ### High-Level Architecture
@@ -216,14 +214,17 @@ The application uses a global exception handler to return consistent JSON error 
 ```
 
 ## Rate Limiting Flow
-Request
-   │
-   ▼
-Get client IP
-   │
-   ▼
-Increment Redis counter
-   │
-   ├── Count ≤ 5 ──► Allow request
-   │
-   └── Count > 5 ──► 429 Too Many Requests
+
+```
+  Request
+    │
+    ▼
+  Get client IP
+    │
+    ▼
+  Increment Redis counter
+    │
+    ├── Count ≤ 5 ──► Allow request
+    │
+    └── Count > 5 ──► 429 Too Many Requests
+```

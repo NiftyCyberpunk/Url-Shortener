@@ -1,0 +1,212 @@
+1. Concurrency + Transactions — 🟢 Mostly completed
+We've covered:
+- Concurrency
+- Race conditions
+- Shared mutable state
+- Lost updates
+- Atomic operations
+- ACID
+  - Atomicity
+  - Consistency
+  - Isolation
+  - Durability
+- Isolation problems
+  - Dirty read
+  - Non-repeatable read
+  - Phantom read
+- Isolation levels
+  - READ UNCOMMITTED
+  - READ COMMITTED
+  - REPEATABLE READ
+  - SERIALIZABLE
+- MVCC
+- Read views / snapshots
+- Optimistic locking
+- @Version
+- Pessimistic locking
+- SELECT ... FOR UPDATE
+- Deadlocks
+- Deadlock detection / rollback
+- Spring transaction proxy
+- Self-invocation
+- Transaction propagation
+  - REQUIRED
+  - REQUIRES_NEW
+  - NESTED
+- Savepoints
+- Checked vs unchecked exceptions and rollback
+- rollbackFor
+- Persistence context
+- Entity lifecycle
+- Dirty checking
+- flush()
+- commit()
+- rollback()
+- First-level cache
+- Bulk @Modifying queries
+- clear()
+- refresh()
+- readOnly
+- Repository vs service transaction boundaries
+So we should not keep drilling basic transaction concepts right now.
+
+
+
+
+2. Database Internals — 🔴 Next major section
+This is where we were about to start.
+I'd break it down like this:
+A. Indexes ⭐
+- B+ Tree
+- How an index actually works
+- Clustered index
+- Secondary index
+- Composite indexes
+- Leftmost-prefix rule
+- Index selectivity
+- Covering indexes
+- Index condition pushdown
+- When indexes are not useful
+- EXPLAIN
+- Query execution plans
+B. InnoDB internals
+- Pages
+- Buffer Pool
+- Clustered index structure
+- Secondary indexes
+- Undo log
+- Redo log
+- Binary log
+- Checkpoints
+- Crash recovery
+C. Transactions at database level
+We've already learned the application-level transaction concepts, so we'll connect them to:
+- InnoDB locks
+- Record locks
+- Gap locks
+- Next-key locks
+- MVCC + undo
+- Deadlocks in InnoDB
+- Lock inspection
+D. Query execution
+- How MySQL finds rows
+- Index scan vs table scan
+- Join algorithms
+- Sorts
+- Temporary tables
+- EXPLAIN ANALYZE
+E. Database design/performance
+- Normalization
+- Denormalization
+- N+1 queries
+- Pagination
+- Offset vs cursor pagination
+- Connection pooling
+- Prepared statements
+
+
+
+
+3. Redis Internals — 🔴 Not started deeply
+We'll connect this directly to your URL shortener.
+Redis
+├── Data structures
+├── Hash tables
+├── Strings
+├── Lists
+├── Sets
+├── Sorted Sets
+├── TTL / expiration
+├── Eviction
+├── Persistence
+│   ├── RDB
+│   └── AOF
+├── Replication
+├── Redis transactions
+├── Atomic commands
+├── Pub/Sub
+├── Distributed locking
+└── Redis Cluster
+
+And we'll revisit your actual design:
+url:05P6uV
+url:05P6uV:count
+
+and understand exactly what Redis is doing internally.
+
+
+
+
+4. Spring Internals — 🟡 Some already covered
+We've already touched:
+- Spring proxy
+- @Transactional
+- Transaction propagation
+- Self-invocation
+- Persistence context
+- JPA dirty checking
+Still left:
+- Spring IoC container
+- Dependency injection
+- Bean lifecycle
+- @Component, @Service, @Repository
+- Configuration classes
+- Auto-configuration
+- Spring Boot startup
+- DispatcherServlet
+- Filters
+- Interceptors
+- Controller → Service → Repository flow
+- Exception handling
+- Validation
+- Spring Data JPA internals
+- Hibernate sessions
+- Connection pool / HikariCP
+
+
+
+5. Distributed Systems — 🔴 Not started
+This will become very important for backend engineering.
+Distributed Systems
+├── CAP theorem
+├── Consistency models
+├── Replication
+├── Leader / follower
+├── Sharding
+├── Load balancing
+├── Distributed locks
+├── Idempotency
+├── Retries
+├── Timeouts
+├── Circuit breakers
+├── Message queues
+├── Kafka
+├── Event-driven architecture
+├── Eventual consistency
+└── Distributed transactions
+
+6. System Design — 🔴 Not started
+Finally we'll apply everything.
+We'll design systems such as:
+URL Shortener
+Rate Limiter
+Instagram-like feed
+YouTube
+WhatsApp
+Notification system
+Ride-sharing system
+
+And we'll cover:
+- Requirements
+- APIs
+- Database design
+- Caching
+- Scaling
+- Load balancing
+- Partitioning
+- Replication
+- Consistency
+- Reliability
+- Failure handling
+- Bottlenecks
+- Tradeoffs

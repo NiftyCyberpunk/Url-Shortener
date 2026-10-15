@@ -18,10 +18,10 @@ public interface UrlRepository extends JpaRepository<Url, Integer> {
 
     Optional<Url> findByShortCode(String shortCode);
 
-    Optional<Url> findByUrlHashAndExpiresAtAfter(String originalUrl, LocalDateTime now);
+    Optional<Url> findByUrlHashAndExpiresAtAfter(String urlHash, LocalDateTime now);
 
     @Transactional
-    @Modifying
+    @Modifying (clearAutomatically = true)
     @Query("""
                 UPDATE Url
                 SET accessCount = accessCount + 1
@@ -30,7 +30,7 @@ public interface UrlRepository extends JpaRepository<Url, Integer> {
     int increaseAccessCountByShortCode(@Param("shortCode") String shortCode);
 
     @Transactional
-    @Modifying
+    @Modifying (clearAutomatically = true)
     @Query("""
                    UPDATE Url
                    SET accessCount = :count
